@@ -656,7 +656,7 @@ html.light .blk .tm{color:#555c69}
   .search{order:20;flex:1 1 140px;width:auto;min-width:0}
   .layer-seg{order:21}
   .catbar{padding:6px 10px;flex-wrap:nowrap;overflow-x:auto}
-  .addcat{display:none}
+  .addcat{flex:none;white-space:nowrap}
   .admin{padding:14px}
   .adm-table .hide-phone{display:none}
   .modal.ed{width:100vw;max-width:100vw;max-height:100dvh;border-radius:0;overflow-y:auto}
@@ -1501,7 +1501,9 @@ function renderDay(){
 }
 function renderCats(){
   const t = todayStr();
-  const pills = data.categories.map(c => {
+  const shownCats = data.categories.filter(c => layer === 'both' || (layer === 'frat') === (c.src === 'frat'))
+    .sort((a, b) => (b.src === 'frat') - (a.src === 'frat'));
+  const pills = shownCats.map(c => {
     const cap = ymd(addDays(new Date(), 120));
     const n = EV().filter(e => e.cat === c.id && e.date >= t && e.date <= cap && !e.done && !e.plan).length;
     return `<span class="catwrap"><button class="cat${hidden.has(c.id)?' off':''}" data-cat="${esc(c.id)}" style="--c:${c.color}" aria-pressed="${!hidden.has(c.id)}" title="${hidden.has(c.id)?'Show':'Hide'} ${esc(c.name)}"><span class="dot"></span><span class="n">${esc(c.name)}</span><span class="k">${n}</span></button></span>`;
@@ -1512,9 +1514,10 @@ function renderCats(){
     const pick = SWATCHES.find(x => !used.has(x)) || SWATCHES[0];
     add = `<form class="catform" id="catform"><input type="text" id="c-name" placeholder="Category name" maxlength="30" autocomplete="off" required>
       <span class="swatches" role="group" aria-label="Color">${SWATCHES.map(x => `<button type="button" class="sw" data-sw="${x}" style="--c:${x}" aria-pressed="${x===pick}" aria-label="${colorName(x)}" title="${colorName(x)}"></button>`).join('')}<label class="sw custom" title="Pick any color"><input type="color" id="c-custom" value="${pick}" aria-label="Custom color"></label></span>
-      ${isExecRole() ? '<label class="cf-frat"><input type="checkbox" id="c-frat"> Kappa Alpha</label>' : ''}<button type="submit" class="btn primary">Add</button><button type="button" class="btn" id="c-cancel">Cancel</button></form>`;
+      ${isExecRole() ? `<label class="cf-frat"><input type="checkbox" id="c-frat" ${layer === 'frat' ? 'checked' : ''}> Kappa Alpha</label>` : ''}<button type="submit" class="btn primary">Add</button><button type="button" class="btn" id="c-cancel">Cancel</button></form>`;
   } else add = `<button class="addcat" id="addCat">+ Add category</button><button class="addcat" id="manageCats" title="Rename, recolor, reorder or delete categories">Manage</button>`;
-  $('catbar').innerHTML = pills + add;
+  const emptyHint = !shownCats.length && layer === 'frat' ? `<span class="hintline">${isExecRole() ? 'No Kappa Alpha categories yet. Add one and check “Kappa Alpha.”' : 'No Kappa Alpha categories yet.'}</span>` : '';
+  $('catbar').innerHTML = emptyHint + pills + add;
   if (addingCat) {
     $('c-name').focus();
     $('c-cancel').onclick = () => { addingCat = false; renderCats(); };
@@ -2773,9 +2776,7 @@ const SB_URL = 'https://hxraxgvbwyqhqrpjyaqm.supabase.co', SB_KEY = 'sb_publisha
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 const HOME = location.origin + location.pathname;
 // a new member's own categories (they can rename or add more)
-const STARTER_CATS = [
-  {id: 'p-classes', name: 'Classes', color: '#0fa3b8'}, {id: 'p-assignments', name: 'Assignments', color: '#12a77a'},
-  {id: 'p-work', name: 'Work', color: '#4f6bff'}, {id: 'p-personal', name: 'Personal', color: '#9b72f7'}, {id: 'p-social', name: 'Social', color: '#f0801a'}];
+const STARTER_CATS = [{id: 'p-personal', name: 'Personal', color: '#9b72f7'}];
 let synced = null, pushTimer = null, pushing = false, pushAgain = false, pullTimer = null;
 
 const strip = (o, keys) => { const c = {...o}; keys.forEach(k => delete c[k]); return c; };
